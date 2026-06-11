@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELIM — Заявка на доставку</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red:         #C8161E;
+            --red-dark:    #8B0D12;
+            --red-light:   #F04450;
+            --gold:        #D4A017;
+            --gold-bright: #F5C842;
+            --gold-dim:    rgba(212,160,23,0.2);
+            --tg:          #27A7E5;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans SC', Arial, sans-serif;
+            min-height: 100vh;
+            background: #0D0001;
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            padding: 40px 16px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background layers */
+        .bg-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .bg-radial {
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 0%,   rgba(180,10,18,0.35) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 100%, rgba(120,5,10,0.3)  0%, transparent 60%),
+                radial-gradient(ellipse 100% 80% at 50% 50%, rgba(40,0,5,0.9)    0%, #0D0001 100%);
+        }
+        .bg-grid {
+            background-image:
+                linear-gradient(rgba(200,22,30,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(200,22,30,0.06) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+
+        /* Corner frames */
+        .corner { position: fixed; width: 90px; height: 90px; z-index: 2; pointer-events: none; }
+        .corner-tl { top: 0; left: 0; border-top: 1.5px solid var(--gold); border-left: 1.5px solid var(--gold); }
+        .corner-tr { top: 0; right: 0; border-top: 1.5px solid var(--gold); border-right: 1.5px solid var(--gold); }
+        .corner-bl { bottom: 0; left: 0; border-bottom: 1.5px solid var(--gold); border-left: 1.5px solid var(--gold); }
+        .corner-br { bottom: 0; right: 0; border-bottom: 1.5px solid var(--gold); border-right: 1.5px solid var(--gold); }
+
+        /* Side hieroglyphs */
+        .side-deco {
+            position: fixed; top: 50%; transform: translateY(-50%);
+            writing-mode: vertical-rl;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 11px; letter-spacing: 8px;
+            color: rgba(200,22,30,0.15);
+            user-select: none; pointer-events: none; z-index: 1;
+        }
+        .side-deco-left  { left: 12px; }
+        .side-deco-right { right: 12px; }
+
+        .wrapper { position: relative; z-index: 3; width: 100%; max-width: 800px; }
+
+        /* ══ HEADER ══ */
+        .header { text-align: center; margin-bottom: 36px; }
+        .logo-line { display: inline-flex; align-items: center; gap: 18px; margin-bottom: 10px; }
+        .logo-mark {
+            width: 58px; height: 58px;
+            background: linear-gradient(145deg, #E02030, #8B0D12);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Noto Serif SC', serif; font-size: 26px; color: #fff; font-weight: 700;
+            box-shadow: 0 0 0 1px rgba(212,160,23,0.4), 0 0 0 3px rgba(200,22,30,0.2), 0 8px 32px rgba(200,22,30,0.5);
+            flex-shrink: 0;
+        }
+        .logo-text-wrap { text-align: left; }
+        .logo-name {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 38px; font-weight: 700;
+            letter-spacing: 6px; line-height: 1; color: #fff;
+            text-shadow: 0 0 40px rgba(200,22,30,0.4);
+        }
+        .logo-sub {
+            font-size: 9px; letter-spacing: 5px; text-transform: uppercase;
+            color: rgba(212,160,23,0.65); margin-top: 5px;
+        }
+        .header-divider {
+            display: flex; align-items: center; gap: 14px;
+            justify-content: center; margin: 16px auto 12px; max-width: 500px;
+        }
+        .hd-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-bright), transparent); opacity: 0.35; }
+        .hd-diamond { width: 8px; height: 8px; border: 1px solid var(--gold); transform: rotate(45deg); background: rgba(212,160,23,0.15); flex-shrink: 0; }
+        .hd-text { font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: rgba(212,160,23,0.55); }
+        .header-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(17px, 3vw, 24px);
+            font-weight: 400; color: rgba(255,255,255,0.88); letter-spacing: 3px;
+        }
+
+        /* ══ CARD ══ */
+        .card {
+            background: linear-gradient(160deg, rgba(90,0,10,0.38) 0%, rgba(15,0,3,0.72) 100%);
+            border: 1px solid rgba(200,22,30,0.38);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow:
+                0 0 0 1px rgba(200,22,30,0.08),
+                inset 0 1px 0 rgba(255,255,255,0.06),
+                0 30px 80px rgba(0,0,0,0.7);
+            backdrop-filter: blur(14px);
+        }
+
+        /* ══ SECTION LABELS ══ */
+        .section-label {
+            display: flex; align-items: center; gap: 14px;
+            font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+            color: rgba(212,160,23,0.9);
+            margin-bottom: 20px; margin-top: 36px;
+        }
+        .section-label:first-child { margin-top: 0; }
+        .sl-bar { width: 4px; height: 18px; border-radius: 2px; flex-shrink: 0; background: linear-gradient(180deg, var(--gold-bright), var(--red)); }
+        .sl-text { white-space: nowrap; }
+        .sl-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(200,22,30,0.5), transparent); }
+        .sl-num { font-family: 'Noto Serif SC', serif; font-size: 18px; font-weight: 700; color: rgba(200,22,30,0.18); line-height: 1; flex-shrink: 0; }
+
+        /* ══ GRID ══ */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px 20px;
+        }
+        .full { grid-column: 1 / -1; }
+
+        /* ══ FIELDS ══ */
+        .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .field label {
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            color: rgba(212,160,23,0.75);
+            display: flex; align-items: center; gap: 5px;
+        }
+        .field label .req { color: var(--red-light); font-size: 14px; line-height: 1; font-weight: 400; }
+
+        input[type="text"], input[type="number"], input[type="email"], input[type="tel"], select, textarea {
+            display: block;
+            width: 100%;
+            padding: 9px 13px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(200,22,30,0.3);
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 15px;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+        input::placeholder, textarea::placeholder { color: rgba(255,255,255,0.2); }
+        input:hover, textarea:hover, select:hover { border-color: rgba(200,22,30,0.55); }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--red-light);
+            background: rgba(200,22,30,0.07);
+            box-shadow: 0 0 0 3px rgba(200,22,30,0.15);
+        }
+        textarea { resize: vertical; min-height: 58px; }
+        select {
+            appearance: none; -webkit-appearance: none; cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23C8161E' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 13px center;
+            padding-right: 34px;
+        }
+        select option { background: #1a0003; color: #fff; }
+        .error-message { color: #FF7070; font-size: 11px; min-height: 1em; }
+
+        /* ══ CHECKBOXES ══ */
+        .checkboxes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+        .check-item {
+            display: flex; align-items: flex-start; gap: 13px;
+            padding: 13px 15px;
+            background: rgba(200,22,30,0.05);
+            border: 1px solid rgba(200,22,30,0.2);
+            border-radius: 9px;
+            cursor: pointer; user-select: none;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .check-item:hover { background: rgba(200,22,30,0.1); border-color: rgba(200,22,30,0.45); }
+        .check-item input[type="checkbox"] { display: none; }
+        .check-box {
+            width: 21px; height: 21px; flex-shrink: 0; margin-top: 1px;
+            border: 1.5px solid rgba(200,22,30,0.45);
+            border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(200,22,30,0.05);
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .check-box svg { display: none; }
+        .check-item input:checked ~ .check-box {
+            background: linear-gradient(135deg, var(--red), var(--red-dark));
+            border-color: var(--red);
+        }
+        .check-item input:checked ~ .check-box svg { display: block; }
+        .check-item input:checked ~ .check-texts .check-label { color: #fff; }
+        .check-texts { flex: 1; min-width: 0; }
+        .check-label { font-size: 13px; color: rgba(255,255,255,0.78); line-height: 1.35; }
+        .check-sub { font-size: 10px; color: rgba(200,22,30,0.6); margin-top: 3px; }
+
+        /* ══ SEND METHODS ══ */
+        .send-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .send-option {
+            display: flex; flex-direction: column; align-items: center; gap: 9px;
+            padding: 18px 12px 16px;
+            border: 2px solid rgba(255,255,255,0.07);
+            border-radius: 12px;
+            cursor: pointer; user-select: none;
+            background: rgba(255,255,255,0.03);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+            text-align: center;
+            position: relative;
+        }
+        .send-option input[type="radio"] { display: none; }
+        .send-option:hover { border-color: rgba(200,22,30,0.4); }
+        .send-option.active-tg    { border-color: var(--tg);   background: rgba(39,167,229,0.08);  box-shadow: 0 0 0 1px rgba(39,167,229,0.2); }
+        .send-option.active-email { border-color: var(--gold); background: rgba(212,160,23,0.08); box-shadow: 0 0 0 1px rgba(212,160,23,0.2); }
+        .send-icon-wrap {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .tg-icon-wrap    { background: linear-gradient(135deg, #2AABEE, #1A7FBF); }
+        .email-icon-wrap { background: linear-gradient(135deg, var(--gold), #9a7200); }
+        .send-title { font-size: 13px; font-weight: 700; color: #fff; }
+        .send-desc  { font-size: 10px; color: rgba(255,255,255,0.38); }
+        .active-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            position: absolute; top: 10px; right: 10px;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .send-option.active-tg    .active-dot { background: var(--tg);   opacity: 1; }
+        .send-option.active-email .active-dot { background: var(--gold); opacity: 1; }
+
+        /* ══ BUTTONS ══ */
+        .submit-btn {
+            width: 100%; margin-top: 28px; padding: 17px;
+            border: none; border-radius: 10px;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 13px; font-weight: 700; letter-spacing: 3px;
+            cursor: pointer; color: #fff;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .submit-btn:hover { transform: translateY(-2px); }
+        .submit-btn:active { transform: translateY(0); }
+        .btn-tg    { background: linear-gradient(135deg, #2AABEE, #1478b8); box-shadow: 0 6px 28px rgba(39,167,229,0.4); }
+        .btn-email { background: linear-gradient(135deg, var(--red), var(--red-dark)); box-shadow: 0 6px 28px rgba(200,22,30,0.45); }
+        .submit-btn-inner { display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .btn-seal { font-family: 'Noto Serif SC', serif; font-size: 12px; color: rgba(255,255,255,0.45); }
+
+
+        .save-file-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; margin-top: 12px; padding: 14px 16px;
+            background: rgba(200,22,30,0.1);
+            border: 1px solid rgba(200,22,30,0.4);
+            border-radius: 10px;
+            color: rgba(255,130,130,0.9);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 11px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+        }
+        .save-file-btn:hover { border-color: rgba(200,22,30,0.7); color: #fff; background: rgba(200,22,30,0.18); }
+
+        .website-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            width: 100%; margin-top: 12px; padding: 14px 16px;
+            background: transparent;
+            border: 1px solid rgba(212,160,23,0.3);
+            border-radius: 10px;
+            color: rgba(212,160,23,0.75);
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 11px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase;
+            cursor: pointer; text-decoration: none;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .website-btn:hover { border-color: rgba(212,160,23,0.6); color: var(--gold-bright); }
+
+        .loading-indicator {
+            display: none; text-align: center; margin-top: 14px;
+            font-size: 11px; letter-spacing: 2px; color: rgba(212,160,23,0.7);
+        }
+
+
+        /* ══ МОДАЛ С ТЕКСТОМ ЗАЯВКИ ══ */
+        .msg-modal-overlay {
+            display: none;
+            position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.75);
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .msg-modal-overlay.show { display: flex; }
+        .msg-modal {
+            background: linear-gradient(160deg, #3a0006 0%, #16000A 100%);
+            border: 1px solid rgba(200,22,30,0.5);
+            border-radius: 14px;
+            padding: 24px;
+            width: 100%; max-width: 560px;
+            max-height: 85vh;
+            display: flex; flex-direction: column; gap: 14px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+        }
+        .msg-modal-title {
+            font-size: 15px; font-weight: 700; color: #fff;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .msg-modal-sub { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5; }
+        .msg-modal-text {
+            width: 100%;
+            min-height: 200px; max-height: 40vh;
+            padding: 12px 14px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(200,22,30,0.35);
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Noto Sans SC', monospace;
+            font-size: 13px; line-height: 1.5;
+            resize: vertical;
+            overflow-y: auto;
+        }
+        .msg-modal-btns { display: flex; gap: 10px; }
+        .msg-copy-btn {
+            flex: 1; padding: 13px;
+            background: linear-gradient(135deg, var(--red), var(--red-dark));
+            border: none; border-radius: 8px;
+            color: #fff; font-family: 'Noto Sans SC', sans-serif;
+            font-size: 13px; font-weight: 700; letter-spacing: 1px;
+            cursor: pointer;
+        }
+        .msg-copy-btn.copied { background: linear-gradient(135deg, #1f9d4d, #136b33); }
+        .msg-close-btn {
+            padding: 13px 20px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
+            color: rgba(255,255,255,0.7); font-family: 'Noto Sans SC', sans-serif;
+            font-size: 13px; cursor: pointer;
+        }
+        .msg-close-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+
+        /* ══ RESPONSIVE ══ */
+        @media (max-width: 660px) {
+            .card { padding: 22px 16px; }
+            .form-grid, .checkboxes-grid, .send-methods { grid-template-columns: 1fr; }
+            .logo-name { font-size: 28px; }
+            .logo-mark { width: 46px; height: 46px; font-size: 20px; }
+            .side-deco { display: none; }
+            .corner { width: 50px; height: 50px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-layer bg-radial"></div>
+    <div class="bg-layer bg-grid"></div>
+
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+
+    <div class="side-deco side-deco-left">速达货运专业服务安全可靠高效</div>
+    <div class="side-deco side-deco-right">精品物流诚信为本迅速可靠专业</div>
+
+    <div class="wrapper">
+
+        <!-- HEADER -->
+        <div class="header">
+            <div class="logo-line">
+                <div class="logo-mark">货</div>
+                <div class="logo-text-wrap">
+                    <div class="logo-name">ELIM</div>
+                    <div class="logo-sub">Cargo &middot; Delivery &middot; Logistics</div>
+                </div>
+            </div>
+            <div class="header-divider">
+                <div class="hd-line"></div>
+                <div class="hd-diamond"></div>
+                <div class="hd-text">Создать заявку</div>
+                <div class="hd-diamond"></div>
+                <div class="hd-line"></div>
+            </div>
+            <div class="header-title">Заявка на доставку груза</div>
+        </div>
+
+        <div class="card">
+            <form id="shippingForm">
+
+                <!-- 01 ГРУЗ -->
+                <div class="section-label">
+                    <div class="sl-bar"></div>
+                    <span class="sl-text">Информация о грузе</span>
+                    <div class="sl-line"></div>
+                    <span class="sl-num">01</span>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="cargoType">Наименование груза <span class="req">*</span></label>
+                        <input type="text" id="cargoType" name="cargoType" placeholder="Одежда, бытовая химия…">
+                        <span id="cargoTypeError" class="error-message"></span>
+                    </div>
+                    <div class="field">
+                        <label for="cargoCondition">Состояние груза</label>
+                        <select id="cargoCondition" name="cargoCondition">
+                            <option value="" disabled selected>Выберите</option>
+                            <option>Новый, в упаковке</option>
+                            <option>Б/У, хорошее состояние</option>
+                            <option>Б/У, требует упаковки</option>
+                            <option>Хрупкий / требует осторожности</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="weight">Вес, кг <span class="req">*</span></label>
+                        <input type="number" id="weight" name="weight" min="0.1" step="0.1" placeholder="Например: 10">
+                        <span id="weightError" class="error-message"></span>
+                    </div>
+                    <div class="field">
+                        <label for="volume">Объём, м³</label>
+                        <input type="number" id="volume" name="volume" min="0.01" step="0.01" placeholder="Например: 0.5">
+                    </div>
+                    <div class="field">
+                        <label for="dimensions">Габариты Д × Ш × В, см</label>
+                        <input type="text" id="dimensions" name="dimensions" placeholder="100 × 50 × 80">
+                    </div>
+                    <div class="field">
+                        <label for="paymentType">Способ оплаты</label>
+                        <select id="paymentType" name="paymentType">
+                            <option value="" disabled selected>Выберите</option>
+                            <option>Наличные при получении</option>
+                            <option>Безналичный расчёт</option>
+                            <option>Онлайн-перевод</option>
+                            <option>Счёт для юрлица</option>
+                        </select>
+                    </div>
+                    <div class="field full">
+                        <label for="cargoComment">Дополнительное описание груза</label>
+                        <textarea id="cargoComment" name="cargoComment" rows="2" placeholder="Особые свойства, маркировка, условия перевозки…"></textarea>
+                    </div>
+                </div>
+
+                <!-- 02 МАРШРУТ -->
+                <div class="section-label">
+                    <div class="sl-bar"></div>
+                    <span class="sl-text">Маршрут доставки</span>
+                    <div class="sl-line"></div>
+                    <span class="sl-num">02</span>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="departureAddress">Адрес отправления <span class="req">*</span></label>
+                        <textarea id="departureAddress" name="departureAddress" rows="2" placeholder="Город, улица, дом"></textarea>
+                        <span id="departureAddressError" class="error-message"></span>
+                    </div>
+                    <div class="field">
+                        <label for="destinationAddress">Адрес назначения <span class="req">*</span></label>
+                        <textarea id="destinationAddress" name="destinationAddress" rows="2" placeholder="Город, улица, дом"></textarea>
+                        <span id="destinationAddressError" class="error-message"></span>
+                    </div>
+                </div>
+
+                <!-- 04 ДОП. УСЛУГИ -->
+                <div class="section-label">
+                    <div class="sl-bar"></div>
+                    <span class="sl-text">Дополнительные услуги</span>
+                    <div class="sl-line"></div>
+                    <span class="sl-num">03</span>
+                </div>
+                <div class="checkboxes-grid">
+                    <label class="check-item">
+                        <input type="checkbox" name="services" value="Дополнительная упаковка">
+                        <div class="check-box"><svg width="12" height="9" viewBox="0 0 12 9" fill="none"><polyline points="1,4.5 4.5,8 11,1" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <div class="check-texts"><div class="check-label">Дополнительная упаковка</div><div class="check-sub">Стрейч-плёнка, пузырчатая, короб</div></div>
+                    </label>
+                    <label class="check-item">
+                        <input type="checkbox" name="services" value="Видеоотчёт">
+                        <div class="check-box"><svg width="12" height="9" viewBox="0 0 12 9" fill="none"><polyline points="1,4.5 4.5,8 11,1" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <div class="check-texts"><div class="check-label">Видеоотчёт</div><div class="check-sub">Запись приёма и сдачи груза</div></div>
+                    </label>
+                    <label class="check-item">
+                        <input type="checkbox" name="services" value="Фотоотчёт">
+                        <div class="check-box"><svg width="12" height="9" viewBox="0 0 12 9" fill="none"><polyline points="1,4.5 4.5,8 11,1" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <div class="check-texts"><div class="check-label">Фотоотчёт</div><div class="check-sub">Фото на всех этапах пути</div></div>
+                    </label>
+                    <label class="check-item">
+                        <input type="checkbox" name="services" value="Страховка груза">
+                        <div class="check-box"><svg width="12" height="9" viewBox="0 0 12 9" fill="none"><polyline points="1,4.5 4.5,8 11,1" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <div class="check-texts"><div class="check-label">Страховка груза</div><div class="check-sub">Защита от утери и повреждений</div></div>
+                    </label>
+                    <label class="check-item">
+                        <input type="checkbox" name="services" value="Подъём на этаж">
+                        <div class="check-box"><svg width="12" height="9" viewBox="0 0 12 9" fill="none"><polyline points="1,4.5 4.5,8 11,1" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <div class="check-texts"><div class="check-label">Подъём на этаж</div><div class="check-sub">Доставка до двери</div></div>
+                    </label>
+                    <label class="check-item">
+                        <input type="checkbox" name="services" value="Грузчики">
+                        <div class="check-box"><svg width="12" height="9" viewBox="0 0 12 9" fill="none"><polyline points="1,4.5 4.5,8 11,1" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <div class="check-texts"><div class="check-label">Грузчики</div><div class="check-sub">Погрузка и разгрузка</div></div>
+                    </label>
+                </div>
+
+                <!-- 05 КОНТАКТЫ -->
+                <div class="section-label">
+                    <div class="sl-bar"></div>
+                    <span class="sl-text">Ваши контакты</span>
+                    <div class="sl-line"></div>
+                    <span class="sl-num">04</span>
+                </div>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="recipientName">Ваше имя <span class="req">*</span></label>
+                        <input type="text" id="recipientName" name="recipientName" placeholder="Иван Петров">
+                        <span id="recipientNameError" class="error-message"></span>
+                    </div>
+                    <div class="field">
+                        <label for="phoneNumber">Телефон <span class="req">*</span></label>
+                        <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="89xxxxxxxxx">
+                        <span id="phoneNumberError" class="error-message"></span>
+                    </div>
+                    <div class="field">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="example@mail.com">
+                        <span id="emailError" class="error-message"></span>
+                    </div>
+                    <div class="field full">
+                        <label for="comments">Комментарий к заявке</label>
+                        <textarea id="comments" name="comments" rows="2" placeholder="Пожелания, удобное время звонка…"></textarea>
+                    </div>
+                </div>
+
+                <!-- 06 ОТПРАВКА -->
+                <div class="section-label">
+                    <div class="sl-bar"></div>
+                    <span class="sl-text">Способ отправки заявки</span>
+                    <div class="sl-line"></div>
+                    <span class="sl-num">05</span>
+                </div>
+                <div class="send-methods">
+                    <label class="send-option active-tg" id="opt-tg" onclick="selectMethod('telegram')">
+                        <input type="radio" name="sendMethod" value="telegram" checked>
+                        <div class="active-dot"></div>
+                        <div class="send-icon-wrap tg-icon-wrap">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.31 13.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.838.942z"/></svg>
+                        </div>
+                        <div class="send-title">Telegram</div>
+                        <div class="send-desc">@KargoElim</div>
+                    </label>
+                    <label class="send-option" id="opt-email" onclick="selectMethod('email')">
+                        <input type="radio" name="sendMethod" value="email">
+                        <div class="active-dot"></div>
+                        <div class="send-icon-wrap email-icon-wrap">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="#fff"><path d="M20 4H4c-1.103 0-2 .897-2 2v12c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V6c0-1.103-.897-2-2-2zm0 2v.511l-8 6.223-8-6.222V6h16zM4 18V9.044l7.386 5.745a1 1 0 0 0 1.228 0L20 9.044 20.002 18H4z"/></svg>
+                        </div>
+                        <div class="send-title">Email</div>
+                        <div class="send-desc">kargoelim@gmail.com</div>
+                    </label>
+                </div>
+
+                <div class="loading-indicator" id="loadingIndicator">Открываем…</div>
+
+                <button type="submit" class="submit-btn btn-tg" id="submitBtn">
+                    <div class="submit-btn-inner">
+                        <span id="btnIcon">✈️</span>
+                        <span id="btnText">ОТПРАВИТЬ В TELEGRAM</span>
+                        <span class="btn-seal">发货</span>
+                    </div>
+                </button>
+
+
+                <button type="button" class="save-file-btn" id="saveFileBtn" onclick="saveAsFile()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    СОХРАНИТЬ ЗАЯВКУ ФАЙЛОМ
+                </button>
+
+                <a href="https://linku.su/KargoElim" target="_blank" class="website-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    Наша визитка
+                </a>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Модал с текстом заявки -->
+    <div class="msg-modal-overlay" id="msgModal">
+        <div class="msg-modal">
+            <div class="msg-modal-title" id="msgModalTitle">Текст вашей заявки</div>
+            <div class="msg-modal-sub" id="msgModalSub">Чат MAX уже открыт в соседней вкладке. Скопируйте текст кнопкой ниже и вставьте его в чат (Ctrl+V).</div>
+            <textarea class="msg-modal-text" id="msgModalText" readonly></textarea>
+            <div class="msg-modal-btns">
+                <button type="button" class="msg-copy-btn" id="msgCopyBtn" onclick="copyModalText()">СКОПИРОВАТЬ ТЕКСТ</button>
+                <button type="button" class="msg-close-btn" onclick="closeMsgModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const recipientEmail = 'kargoelim@gmail.com';
+        const tgUsername = 'KargoElim';
+        let currentMethod = 'telegram';
+
+        /* Send method */
+        const methods = {
+            telegram: { cls: 'active-tg',    btnCls: 'submit-btn btn-tg',    icon: '\u2708\uFE0F', text: 'ОТПРАВИТЬ В TELEGRAM' },
+            email:    { cls: 'active-email', btnCls: 'submit-btn btn-email', icon: '\uD83D\uDCE7', text: 'ОТПРАВИТЬ НА EMAIL' },
+        };
+
+        function selectMethod(method) {
+            currentMethod = method;
+            ['tg', 'email'].forEach(id => {
+                const el = document.getElementById('opt-' + id);
+                if (el) el.classList.remove('active-tg', 'active-email');
+            });
+            const key = method === 'telegram' ? 'tg' : method;
+            const opt = document.getElementById('opt-' + key);
+            if (opt) {
+                opt.classList.add(methods[method].cls);
+                const radio = opt.querySelector('input');
+                if (radio) radio.checked = true;
+            }
+            const btn = document.getElementById('submitBtn');
+            btn.className = methods[method].btnCls;
+            document.getElementById('btnIcon').textContent = methods[method].icon;
+            document.getElementById('btnText').textContent = methods[method].text;
+        }
+
+        // Надёжная привязка через события radio (работает даже если inline onclick заблокирован)
+        document.querySelectorAll('input[name="sendMethod"]').forEach(radio => {
+            radio.addEventListener('change', () => selectMethod(radio.value));
+        });
+
+        /* Build message */
+        function buildMsg(form, weight, vol) {
+            const f = form.elements;
+            const services = [...document.querySelectorAll('input[name="services"]:checked')].map(cb => cb.value);
+            let msg = 'Заявка на доставку — ELIM\n\n';
+            msg += '=== ГРУЗ ===\n';
+            msg += 'Наименование: ' + f['cargoType'].value.trim() + '\n';
+            if (f['cargoCondition'].value) msg += 'Состояние: ' + f['cargoCondition'].value + '\n';
+            msg += 'Вес: ' + weight.toFixed(1) + ' кг\n';
+            if (vol) msg += 'Объём: ' + vol + ' м3\n';
+            if (f['dimensions'].value.trim()) msg += 'Габариты: ' + f['dimensions'].value.trim() + ' см\n';
+            if (f['paymentType'].value) msg += 'Оплата: ' + f['paymentType'].value + '\n';
+            if (f['cargoComment'].value.trim()) msg += 'Описание: ' + f['cargoComment'].value.trim() + '\n';
+            msg += '\n=== МАРШРУТ ===\n';
+            msg += 'Откуда: ' + f['departureAddress'].value.trim() + '\n';
+            msg += 'Куда: ' + f['destinationAddress'].value.trim() + '\n';
+            if (services.length) {
+                msg += '\n=== ДОП. УСЛУГИ ===\n';
+                services.forEach(s => { msg += '- ' + s + '\n'; });
+            }
+            msg += '\n=== КОНТАКТЫ ===\n';
+            msg += 'Отправитель: ' + f['recipientName'].value.trim() + '\n';
+            msg += 'Телефон: ' + f['phoneNumber'].value.trim() + '\n';
+            if (f['email'].value.trim()) msg += 'Email: ' + f['email'].value.trim() + '\n';
+            if (f['comments'].value.trim()) msg += '\nКомментарий: ' + f['comments'].value.trim() + '\n';
+            return msg;
+        }
+
+        /* Модал с текстом заявки */
+        function showMsgModal(text, subText) {
+            document.getElementById('msgModalText').value = text;
+            if (subText) document.getElementById('msgModalSub').textContent = subText;
+            const btn = document.getElementById('msgCopyBtn');
+            btn.textContent = 'СКОПИРОВАТЬ ТЕКСТ';
+            btn.classList.remove('copied');
+            document.getElementById('msgModal').classList.add('show');
+        }
+        function closeMsgModal() {
+            document.getElementById('msgModal').classList.remove('show');
+        }
+        function copyModalText() {
+            const ta = document.getElementById('msgModalText');
+            ta.removeAttribute('readonly');
+            ta.select();
+            ta.setSelectionRange(0, 999999);
+            let ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) {}
+            ta.setAttribute('readonly', '');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(ta.value).catch(() => {});
+            }
+            const btn = document.getElementById('msgCopyBtn');
+            btn.textContent = '✓ СКОПИРОВАНО';
+            btn.classList.add('copied');
+            window.getSelection().removeAllRanges();
+        }
+
+        /* Открытие ссылки через якорь — надёжнее window.open */
+        function openLink(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+
+        /* Сохранить заявку файлом */
+        function saveAsFile() {
+            const form = document.getElementById('shippingForm');
+            document.querySelectorAll('.error-message').forEach(s => s.textContent = '');
+            let isValid = true; const errors = {};
+            if (!form.elements['cargoType'].value.trim()) { errors['cargoType'] = 'Опишите груз.'; isValid = false; }
+            const weight = parseFloat(form.elements['weight'].value);
+            if (isNaN(weight) || weight < 0.1) { errors['weight'] = 'Укажите вес (от 0.1 кг).'; isValid = false; }
+            if (!form.elements['departureAddress'].value.trim()) { errors['departureAddress'] = 'Укажите адрес отправления.'; isValid = false; }
+            if (!form.elements['destinationAddress'].value.trim()) { errors['destinationAddress'] = 'Укажите адрес назначения.'; isValid = false; }
+            if (!form.elements['recipientName'].value.trim()) { errors['recipientName'] = 'Укажите имя.'; isValid = false; }
+            if (!/^[0-9]{8,11}$/.test(form.elements['phoneNumber'].value.replace(/\D/g, ''))) { errors['phoneNumber'] = 'Некорректный телефон.'; isValid = false; }
+            for (const f in errors) { const el = document.getElementById(f + 'Error'); if (el) el.textContent = errors[f]; }
+            if (!isValid) {
+                const firstErr = document.querySelector('.error-message:not(:empty)');
+                if (firstErr) firstErr.scrollIntoView({ block: 'center' });
+                return;
+            }
+            const vol = form.elements['volume'].value;
+            const msg = buildMsg(form, weight, vol);
+            const blob = new Blob(['\uFEFF' + msg], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            const d = new Date();
+            const stamp = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            a.download = 'Заявка_ELIM_' + stamp + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+
+        /* Submit */
+        document.getElementById('shippingForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            document.querySelectorAll('.error-message').forEach(s => s.textContent = '');
+            let isValid = true; const errors = {};
+
+            if (!form.elements['cargoType'].value.trim()) { errors['cargoType'] = 'Опишите груз.'; isValid = false; }
+            const weight = parseFloat(form.elements['weight'].value);
+            if (isNaN(weight) || weight < 0.1) { errors['weight'] = 'Укажите вес (от 0.1 кг).'; isValid = false; }
+            if (!form.elements['departureAddress'].value.trim()) { errors['departureAddress'] = 'Укажите адрес отправления.'; isValid = false; }
+            if (!form.elements['destinationAddress'].value.trim()) { errors['destinationAddress'] = 'Укажите адрес назначения.'; isValid = false; }
+            if (!form.elements['recipientName'].value.trim()) { errors['recipientName'] = 'Укажите имя.'; isValid = false; }
+            if (!/^[0-9]{8,11}$/.test(form.elements['phoneNumber'].value.replace(/\D/g, ''))) { errors['phoneNumber'] = 'Некорректный телефон.'; isValid = false; }
+            const emailVal = form.elements['email'].value.trim();
+            if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) { errors['email'] = 'Неверный формат email.'; isValid = false; }
+
+            for (const f in errors) { const el = document.getElementById(f + 'Error'); if (el) el.textContent = errors[f]; }
+            if (!isValid) {
+                // Прокрутка к первой ошибке
+                const firstErr = document.querySelector('.error-message:not(:empty)');
+                if (firstErr) firstErr.scrollIntoView({ block: 'center' });
+                return;
+            }
+
+            const vol = form.elements['volume'].value;
+            const msg = buildMsg(form, weight, vol);
+            const loader = document.getElementById('loadingIndicator');
+            loader.style.display = 'block';
+
+            if (currentMethod === 'telegram') {
+                // Telegram принимает текст в URL — заявка подставится в чат сама
+                openLink('https://t.me/' + tgUsername + '?text=' + encodeURIComponent(msg));
+                setTimeout(() => { loader.style.display = 'none'; }, 800);
+
+
+            } else {
+                // Email: открываем почтовый клиент + показываем текст с кнопкой копирования
+                let body = msg;
+                const mailtoBase = 'mailto:' + recipientEmail + '?subject=' + encodeURIComponent('Заявка на доставку — ELIM') + '&body=';
+                let mailto = mailtoBase + encodeURIComponent(body);
+                if (mailto.length > 1900) {
+                    body = body.substring(0, 1200) + '\n\n[Текст сокращён — скопируйте полный из окна на сайте]';
+                    mailto = mailtoBase + encodeURIComponent(body);
+                }
+                window.location.href = mailto;
+                setTimeout(() => {
+                    loader.style.display = 'none';
+                    showMsgModal(msg, 'Почтовый клиент открывается. Если письмо не появилось — скопируйте текст кнопкой ниже и отправьте вручную на ' + recipientEmail);
+                }, 800);
+            }
+        });
+    </script>
+</body>
+</html>
